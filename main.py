@@ -23,7 +23,7 @@ def analyze_channels(target, interface):
     analyzer.get_most_active_channel()
 
 
-def analyze_channels(target, interface, channel, interval, length):
+def analyze_packets(target, interface, channel, interval, length):
     print(f'[INFO]',
           f'Analyzing packets...',
           f'[target: {target}, interface: {interface}, channel {channel}',
