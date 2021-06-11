@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """Main module for packet analyzation attack."""
 from device_analyzer import DeviceAnalyzer
 from channel_analyzer import ChannelAnalyzer
