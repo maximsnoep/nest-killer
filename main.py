@@ -5,6 +5,7 @@ from device_analyzer import DeviceAnalyzer
 from channel_analyzer import ChannelAnalyzer
 from packet_analyzer import PacketAnalyzer
 from interface_manager import InterfaceManager
+from denial_of_service import DenialOfService
 
 
 def analyze_devices(interface, vendor=None):
@@ -48,3 +49,11 @@ if __name__ == '__main__':
     interval = 0.2
 
     # analyze_channels(target, interface, channel, interval, length)
+
+    dos = DenialOfService(interface, channel)
+
+    target_addr = '192.168.0.x'
+    quantity = 100000
+    target_port = 80
+
+    # dos.flood(target_addr, quantity, target_port)
