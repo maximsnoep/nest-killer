@@ -7,7 +7,7 @@ from modules.interface_manager import InterfaceManager
 from modules.denial_of_service import DenialOfService
 
 
-def find(interface, vendor=None):
+def attack(interface, vendor=None):
     analyzer = WirelessTrafficAnalyzer(interface, 10)
     devices = analyzer.get_devices(vendor)
     try:
