@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 class DeviceAnalyzer():
     """Analyze a device."""
 
-    def __init__(self, target, interface, timeout=3):
+    def __init__(self, device, interface, timeout=3):
         """Initialize variables."""
-        self.target = target
+        self.device = device
+        self.interface = interface
         self.timeout = timeout
         self.channels = [1, 6, 11]
 
@@ -24,7 +25,7 @@ class DeviceAnalyzer():
         """Returns most active channels by counting packets from/to target."""
         print(f'[INFO]',
               f'Analyzing channels...',
-              f'[target: {target}, interface: {interface}]')
+              f'[device: {self.device}, interface: {self.interface}]')
         self.counters = {i: 0 for i in self.channels}
         # for each channel
         for ch in self.channels:
@@ -32,8 +33,8 @@ class DeviceAnalyzer():
             self.manager.wlan_channel(ch)
             # sniff on the interface
             capture = self.manager.capture(
-                bpf_filter=f'wlan addr2 {self.target} or \
-                             wlan addr1 {self.target}',
+                bpf_filter=f'wlan addr2 {self.device} or \
+                             wlan addr1 {self.device}',
                 timeout=self.timeout)
             # count the number of packets
             self.counters[ch] = len(capture)
@@ -66,7 +67,7 @@ class DeviceAnalyzer():
         plt.xlabel('time [s]')
         plt.ylim(0, 80000 * self.interval)
         plt.ylabel(f'payload [bytes in {self.interval}s]')
-        plt.title(f'Target: {self.target}', loc='center')
+        plt.title(f'Device: {self.device}', loc='center')
         plt.legend(loc='upper left')
 
         # thread animating graph
@@ -83,13 +84,15 @@ class DeviceAnalyzer():
 
     def _capture(self):
         capture = self.manager.capture(
-                bpf_filter=f'wlan addr2 {self.target} or \
-                             wlan addr1 {self.target}')
+                bpf_filter=f'wlan addr2 {self.device} or \
+                             wlan addr1 {self.device}')
         for packet in capture:
             try:
-                if (packet.wlan.ta == self.target):
+                if packet.wlan.ta == self.device and \
+                   packet.wlan.fc_type == '2':
                     self.counters['transmitting'] += len(packet)
-                if (packet.wlan.ra == self.target):
+                if packet.wlan.ra == self.device and \
+                   packet.wlan.fc_type == '2':
                     self.counters['receiving'] += len(packet)
             except AttributeError:
                 continue

