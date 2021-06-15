@@ -57,7 +57,7 @@ class DenialOfService():
 
     def deauth(self, target_addr, access_point, quantity,):
         """Deauthentication attack"""
-        # set the interface to the correct mode
+        # set to monitor mode
         self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         # create socket
         #   AF_PACKET = raw packet
@@ -99,3 +99,5 @@ class DenialOfService():
         print(f'[INFO]',
               f'Done sending {quantity} DEAUTH packets',
               f'to {target_addr} on AP {access_point}')
+        # reset to managed mode
+        self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)

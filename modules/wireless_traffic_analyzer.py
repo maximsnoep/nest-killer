@@ -14,13 +14,14 @@ class WirelessTrafficAnalyzer():
         self.devices = {i: [] for i in self.channels}
         self.aps = {i: [] for i in self.channels}
         self.manager = InterfaceManager(interface)
-        self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
 
     def get_devices(self, vendor=None):
         """Returns devices in wireless traffic (from a vendor)."""
         print(f'[INFO]',
               f'Analyzing devices...',
               f'[vendor: {vendor}]')
+        # set to monitor mode
+        self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         # for each channel
         for ch in self.channels:
             # set interface to correct channel
@@ -36,6 +37,8 @@ class WirelessTrafficAnalyzer():
                 print(f'[INFO]',
                       f'Channel {ch}: {len(self.devices[ch])} devices',
                       f'{self.devices[ch]}')
+        # reset to managed mode
+        self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)
         # return the devices
         return self.devices
 
@@ -44,6 +47,8 @@ class WirelessTrafficAnalyzer():
         print(f'[INFO]',
               f'Analyzing APs...',
               f'[device: {device}]')
+        # set to monitor mode
+        self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         # for each channel
         for ch in self.channels:
             # set interface to correct channel
@@ -64,5 +69,7 @@ class WirelessTrafficAnalyzer():
                 print(f'[INFO]',
                       f'Channel {ch}: {len(self.aps[ch])} APs',
                       f'{self.aps[ch]}')
+        # reset to managed mode
+        self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)
         # return the devices
         return self.aps

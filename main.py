@@ -28,10 +28,10 @@ def attack(interface, vendor=None):
     device_analyzer = DeviceAnalyzer(device, interface)
     channel = device_analyzer.get_channels()
 
-    device_analyzer.visualize_packets(channel)
+    # device_analyzer.visualize_packets(channel)
 
     dos = DenialOfService(interface, channel)
-    dos.deauth(device, ap, 100000000)
+    dos.deauth(device, ap, 1)
 
     return True
 

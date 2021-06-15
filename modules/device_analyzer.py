@@ -27,6 +27,8 @@ class DeviceAnalyzer():
               f'Analyzing channels...',
               f'[device: {self.device}, interface: {self.interface}]')
         self.counters = {i: 0 for i in self.channels}
+        # set to monitor mode
+        self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         # for each channel
         for ch in self.channels:
             # set interface to correct channel
@@ -41,6 +43,8 @@ class DeviceAnalyzer():
             if (self.counters[ch] > 0):
                 print(f'[INFO]',
                       f'Channel {ch}: {self.counters[ch]} packets')
+        # set to managed mode
+        self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)
         # return the channel with the most counted packets
         return max(self.counters, key=self.counters.get)
 
@@ -49,6 +53,9 @@ class DeviceAnalyzer():
         print(f'[INFO]',
               f'Visualizing packets...',
               f'[channel {channel}, interval: {interval}, length: {length}]')
+        # set to monitor mode
+        self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
+        # set all variables
         self.manager.wlan_channel(channel)
         self.interval = interval
         self.length = length
