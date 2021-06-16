@@ -70,12 +70,14 @@ class DenialOfService():
 
         # 802.11 frame bytes
         frame_control = b'\xc0\x00'  # deauth (subtype 12)
-        addr1 = unhexlify(''.join(
-            [c if (i + 1) % 3 else '' for i, c in enumerate(target_addr)]))
-        addr2 = unhexlify(''.join(
-            [c if (i + 1) % 3 else '' for i, c in enumerate(access_point)]))
-        addr3 = unhexlify(''.join(
-            [c if (i + 1) % 3 else '' for i, c in enumerate(access_point)]))
+
+        def transform_address(addr):
+            return unhexlify(''.join(
+                [c if (i + 1) % 3 else '' for i, c in enumerate(addr)]))
+
+        addr1 = transform_address(target_addr)
+        addr2 = transform_address(access_point)
+        addr3 = transform_address(access_point)
 
         # construct nearly empty packet:
         #   big-endian (for network)
