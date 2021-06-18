@@ -24,6 +24,6 @@ iwconfig
 
 ## Turn bluetooth adapter on
 ```
-hciconfig hci0 on
+hciconfig hci0 up
 hciconfig
 ```

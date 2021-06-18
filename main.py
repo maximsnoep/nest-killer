@@ -3,35 +3,32 @@
 """Main module for packet analyzation attack."""
 from modules.device_analyzer import DeviceAnalyzer
 from modules.wireless_traffic_analyzer import WirelessTrafficAnalyzer
+from modules.denial_of_service import DenialOfService
 
 
-def attack(interface, vendor=None):
-    analyzer = WirelessTrafficAnalyzer(interface, 2)
+def attack(wlan_interface, bl_interface, vendor=None):
+
+    analyzer = WirelessTrafficAnalyzer(wlan_interface, bl_interface, 10)
     devices = analyzer.get_devices(vendor)
-    device = None
-    for channel in devices:
-        if (len(devices[channel]) > 0):
-            device = devices[channel][0]
-            break
 
-    aps = analyzer.get_aps(device)
-    ap = None
-    for channel in aps:
-        if (len(aps[channel]) > 0):
-            ap = aps[channel][0]
-            break
+    if len(devices) == 0:
+        print(f'[INFO] No devices found !!! Exiting...')
+        return
+    # We pick the first device
+    # when more devices or APs are found, choose wisely!
+    device_addr = next(iter(devices))
+    device = devices[device_addr]
 
-    device_analyzer = DeviceAnalyzer(device, ap, interface)
-    channel = device_analyzer.get_channels()
-
-    device_analyzer.visualize_packets(channel)
+    device_analyzer = DeviceAnalyzer(device, wlan_interface)
+    device_analyzer.visualize_packets()
 
     return True
 
 
 if __name__ == '__main__':
 
-    interface = "wlan0"
+    wlan_interface = "wlan0"
+    bl_interface = "hci0"
     vendor = "64:16:66"
 
-    attack(interface, vendor)
+    attack(wlan_interface, bl_interface, vendor)
