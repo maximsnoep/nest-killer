@@ -34,7 +34,7 @@ class WirelessTrafficAnalyzer():
             # add device if it has vendor subaddress
             devices += list(set([
                 p.wlan.ra for p in capture._packets
-                if (p.wlan.ra[0:8] == vendor or vendor is None)
+                if (p.wlan.ra.startsWith(vendor) or vendor is None)
                 ]))
         self.devices = list(set(devices))
         print(f'[INFO]',
