@@ -17,29 +17,31 @@ class WirelessTrafficAnalyzer():
         self.bl_manager = InterfaceManager(bl_interface)
 
     def get_devices(self, vendor=None):
-        """Returns devices in wireless traffic (from a vendor)."""
+        """Return devices in wireless traffic (from a vendor)."""
+        # Phase one, finding devices from a certain vendor
         print(f'[INFO]',
               f'Analyzing devices phase 1...',
               f'[finding devices from vendor: {vendor}]')
-
-        # set to monitor mode
+        # Set to monitor mode
         self.wlan_manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         devices = []
-        # for each channel
+        # For each channel
         for ch in self.channels:
-            # set interface to correct channel
+            # Set interface to correct channel
             self.wlan_manager.wlan_channel(ch)
-            # sniff on the interface
+            # Sniff on the interface
             capture = self.wlan_manager.wlan_capture(timeout=self.timeout)
-            # add device if it has vendor subaddress
+            # Add device if it has vendor subaddress
             devices += list(set([
                 p.wlan.ra for p in capture._packets
-                if (p.wlan.ra.startsWith(vendor) or vendor is None)
+                if (p.wlan.ra[0:8] == vendor or vendor is None)
                 ]))
+        # Remove duplicates
         self.devices = list(set(devices))
         print(f'[INFO]',
               f'Found {len(self.devices)} devices',
               f'{self.devices}')
+        # Create entry for additional device info
         self.devices_info = {i: {'address': i,
                                  'name': None,
                                  'APs': [],
@@ -49,35 +51,42 @@ class WirelessTrafficAnalyzer():
                                               for ch in self.channels}}
                              for i in self.devices}
 
+        # Phase two, finding additional device info, such as signal strength and APs
         print(f'[INFO]',
               f'Analyzing devices phase 2...',
               f'[finding more information]')
-
+        # For each device
         for device in self.devices:
             strengths = []
             distances = []
             aps = []
+            # For each channel
             for ch in self.channels:
                 ch_counter = 0
-                # set interface to correct channel
+                # Set interface to correct channel
                 self.wlan_manager.wlan_channel(ch)
-                # sniff on the interface
+                # Sniff on the interface
                 capture = self.wlan_manager.wlan_capture(
                     bpf_filter=f'wlan addr2 {device} or \
                                  wlan addr1 {device}',
                     timeout=self.timeout)
-                # find information in packets
+                # For all sniffed packets
                 for p in capture._packets:
                     try:
+                        # If packet has type 2 (data packet)
                         if p.wlan.fc_type == '2':
+                            # Count the packet
                             ch_counter += 1
+                            # Add the AP (bssid)
                             aps.append(p.wlan.bssid)
+                            # Add signal strength and distance if {device} is transmitter
                             if p.wlan.ta == device:
                                 strengths.append(
                                     int(p.wlan_radio.signal_dbm))
                                 distances.append(
                                     self.dbm_to_meters(
                                         ch, int(p.wlan_radio.signal_dbm)))
+                    # Catch AttributeError on wrong (malformed) packets
                     except AttributeError as error:
                         print(error)
                 self.devices_info[device]['channels'][ch] = ch_counter
@@ -86,28 +95,32 @@ class WirelessTrafficAnalyzer():
             self.devices_info[device]['strength'] = strength
             self.devices_info[device]['distance'] = distance
             self.devices_info[device]['APs'] = list(set(aps))
+        # Reset (wlan) interface to usable mode
+        self.wlan_manager.wlan_mode(InterfaceManager.MANAGED_MODE)
 
+        # Phase three, finding device names through bluetooth
         print(f'[INFO]',
               f'Analyzing devices phase 3...',
               f'[finding device names through bluetooth]')
-
+        # Set interface to correct mode
         self.bl_manager.bl_mode(InterfaceManager.ON_MODE)
+        # Sniff on the interface
         bl_scan = self.bl_manager.bl_capture(self.timeout)
-
+        # For each device
         for device in bl_scan:
+            # If device has address of one of our devices
             if device['address'] in self.devices:
-                self.devices_info[device['address']]['name'] = device['name']
+                # If name is an actual name (non empty)
+                if device['name'] != '' or device['name'] is not None:
+                    # Add its name
+                    self.devices_info[device['address']]['name'] = device['name']
 
-        # reset to managed mode
-        self.wlan_manager.wlan_mode(InterfaceManager.MANAGED_MODE)
-        # return the devices
-        print(self.devices_info)
+        # Return the devices
         return self.devices_info
 
     @staticmethod
     def dbm_to_meters(channel, dbm):
-        # source:
-        # https://gist.github.com/cryptolok/516471ce35a9851197b204853c6de080
+        """Convert signal strength to distance."""
         mhz = 2407 + 5 * channel
         FSPL = 27.55
         return 10 ** (np.subtract(FSPL, 20 * np.log10(mhz) + dbm) / 20)

