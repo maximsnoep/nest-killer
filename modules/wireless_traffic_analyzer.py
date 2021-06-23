@@ -19,9 +19,7 @@ class WirelessTrafficAnalyzer():
     def get_devices(self, vendor=None):
         """Return devices in wireless traffic (from a vendor)."""
         # Phase one, finding devices from a certain vendor
-        print(f'[INFO]',
-              f'Analyzing devices phase 1...',
-              f'[finding devices from vendor: {vendor}]')
+        print(f'[INFO] Analyzing devices phase 1... [finding devices from vendor: {vendor}]')
         # Set to monitor mode
         self.wlan_manager.wlan_mode(InterfaceManager.MONITOR_MODE)
         devices = []
@@ -32,29 +30,21 @@ class WirelessTrafficAnalyzer():
             # Sniff on the interface
             capture = self.wlan_manager.wlan_capture(timeout=self.timeout)
             # Add device if it has vendor subaddress
-            devices += list(set([
-                p.wlan.ra for p in capture._packets
-                if (p.wlan.ra[0:8] == vendor or vendor is None)
-                ]))
+            devices += list(set([p.wlan.ra for p in capture._packets if (p.wlan.ra[0:8] == vendor or vendor is None)]))
         # Remove duplicates
         self.devices = list(set(devices))
-        print(f'[INFO]',
-              f'Found {len(self.devices)} devices',
-              f'{self.devices}')
+        print(f'[INFO] Found {len(self.devices)} devices {self.devices}')
         # Create entry for additional device info
         self.devices_info = {i: {'address': i,
                                  'name': None,
                                  'APs': [],
                                  'strength': None,
                                  'distance': None,
-                                 'channels': {ch: None
-                                              for ch in self.channels}}
+                                 'channels': {ch: None for ch in self.channels}}
                              for i in self.devices}
 
         # Phase two, finding additional device info, such as signal strength and APs
-        print(f'[INFO]',
-              f'Analyzing devices phase 2...',
-              f'[finding more information]')
+        print(f'[INFO] Analyzing devices phase 2... [finding more information]')
         # For each device
         for device in self.devices:
             strengths = []
@@ -67,8 +57,7 @@ class WirelessTrafficAnalyzer():
                 self.wlan_manager.wlan_channel(ch)
                 # Sniff on the interface
                 capture = self.wlan_manager.wlan_capture(
-                    bpf_filter=f'wlan addr2 {device} or \
-                                 wlan addr1 {device}',
+                    bpf_filter=f'wlan addr2 {device} or wlan addr1 {device}',
                     timeout=self.timeout)
                 # For all sniffed packets
                 for p in capture._packets:
@@ -81,11 +70,8 @@ class WirelessTrafficAnalyzer():
                             aps.append(p.wlan.bssid)
                             # Add signal strength and distance if {device} is transmitter
                             if p.wlan.ta == device:
-                                strengths.append(
-                                    int(p.wlan_radio.signal_dbm))
-                                distances.append(
-                                    self.dbm_to_meters(
-                                        ch, int(p.wlan_radio.signal_dbm)))
+                                strengths.append(int(p.wlan_radio.signal_dbm))
+                                distances.append(self.dbm_to_meters(ch, int(p.wlan_radio.signal_dbm)))
                     # Catch AttributeError on wrong (malformed) packets
                     except AttributeError as error:
                         print(error)
@@ -99,9 +85,7 @@ class WirelessTrafficAnalyzer():
         self.wlan_manager.wlan_mode(InterfaceManager.MANAGED_MODE)
 
         # Phase three, finding device names through bluetooth
-        print(f'[INFO]',
-              f'Analyzing devices phase 3...',
-              f'[finding device names through bluetooth]')
+        print(f'[INFO] Analyzing devices phase 3... [finding device names through bluetooth]')
         # Set interface to correct mode
         self.bl_manager.bl_mode(InterfaceManager.ON_MODE)
         # Sniff on the interface

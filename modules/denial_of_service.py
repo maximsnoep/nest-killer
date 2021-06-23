@@ -87,13 +87,9 @@ class DenialOfService():
     def start_sending(self, _):
         """Start sending deauthentication packets."""
         self.sending = True
-        print(f'[INFO]',
-              f'Sending DEAUTH packets',
-              f'to {self.target_addr} on AP {self.access_point}')
+        print(f'[INFO] Sending DEAUTH packets to {self.target_addr} on AP {self.access_point}')
 
     def stop_sending(self, _):
         """Stop sending deauthentication packets."""
         self.sending = False
-        print(f'[INFO]',
-              f'Done sending DEAUTH packets',
-              f'to {self.target_addr} on AP {self.access_point}')
+        print(f'[INFO] Done sending DEAUTH packets to {self.target_addr} on AP {self.access_point}')

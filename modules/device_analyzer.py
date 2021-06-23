@@ -101,9 +101,7 @@ class DeviceAnalyzer():
 
     def _capture(self):
         # Sniff on the interface
-        capture = self.manager.wlan_capture(
-                bpf_filter=f'wlan addr2 {self.device} or \
-                             wlan addr1 {self.device}')
+        capture = self.manager.wlan_capture(bpf_filter=f'wlan addr2 {self.device} or wlan addr1 {self.device}')
         # For all sniffed packets
         for packet in capture:
             try:
@@ -128,13 +126,12 @@ class DeviceAnalyzer():
         for i in self.counters:
             # For the average counter, compute average, add to y axis
             if i == 'average':
-                self.y[i].append(np.mean(
-                    self.y['transmitting'][-5*int(1/self.interval):]))
+                self.y[i].append(np.mean(self.y['transmitting'][-5*int(1/self.interval):]))
             # For all other counters, add to y axis
             else:
                 self.y[i].append(self.counters[i])
             # Strip y axis such that the number of elements is length/interval 
-            self.y[i] = self.y[i][-int(self.length/self.interval):]\
+            self.y[i] = self.y[i][-int(self.length/self.interval):]
             # Add x and y axis data to line object (the plot) for the counter
             self.lines[i].set_data([self.x[-len(self.y[i]):], self.y[i]])
             # Reset the counter
@@ -167,8 +164,7 @@ class DeviceAnalyzer():
             return "offline"
 
     def _exit(self, event):
-        print(f'[INFO]',
-              f'Stop visualizing packets...')
+        print(f'[INFO] Stop visualizing packets...')
         # Reset (wlan) interface to usable mode
         self.manager.wlan_mode(InterfaceManager.MANAGED_MODE)
         # Exit (kill all threads)

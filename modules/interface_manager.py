@@ -31,15 +31,13 @@ class InterfaceManager():
             os.system(f'service NetworkManager start')
         # Enable interface
         os.system(f'ifconfig {self.interface} up')
-        print(f'[SYSTEM]',
-              f'Successfully set {self.interface} to {mode} mode')
+        print(f'[SYSTEM] Successfully set {self.interface} to {mode} mode')
 
     def wlan_channel(self, channel):
         """Set wlan interface to a specified channel."""
         # Use iwconfig to set the channel of the interface
         os.system(f'iwconfig {self.interface} channel {channel}')
-        print(f'[SYSTEM]',
-              f'Successfully set {self.interface} to channel {channel}')
+        print(f'[SYSTEM] Successfully set {self.interface} to channel {channel}')
 
     def wlan_capture(self, bpf_filter="", timeout=None):
         """Sniff and return a capture."""
@@ -59,8 +57,7 @@ class InterfaceManager():
         """Set bl interface to a specified mode."""
         # Set the correct interface mode
         os.system(f'hciconfig {self.interface} {mode}')
-        print(f'[SYSTEM]',
-              f'Successfully set {self.interface} to {mode} mode')
+        print(f'[SYSTEM] Successfully set {self.interface} to {mode} mode')
 
     def bl_capture(self, timeout=30):
         """Sniff and return a capture."""
